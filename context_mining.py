@@ -25,9 +25,11 @@ class TextPreprocessing:
     def lemmatize_pos_tagged_word(self, pos_tagged_word):
         lemmatizer = nltk.stem.WordNetLemmatizer()
         print("pos_tagged_word: ", pos_tagged_word)
+        # TODO: fix this so that there are no exceptions since right now it is not lemmatizing properly 
         try:
             lemmatizer.lemmatize(pos_tagged_word[0], pos_tagged_word[1].lower())
         except Exception:
+            print("Exception: ", Exception)
             return pos_tagged_word[0]
     def preprocess(self, file):
         with open(file, 'r', encoding='utf-8') as input_file:
