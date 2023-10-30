@@ -22,16 +22,32 @@ class TextPreprocessing:
     def transform_accented_chars(self, text):
         text = unicodedata.normalize('NFKD', text).encode('ascii', 'ignore').decode('utf-8', 'ignore')
         return text
+    def lemmatize_pos_tagged_word(self, pos_tagged_word):
+        lemmatizer = nltk.stem.WordNetLemmatizer()
+        print("pos_tagged_word: ", pos_tagged_word)
+        # TODO: fix this so that there are no exceptions since right now it is not lemmatizing properly
+        try:
+            tag = pos_tagged_word[1]
+            wntag = get_wordnet_pos(tag)
+            lemmatizer.lemmatize(pos_tagged_word[0], tag)
+        except Exception:
+            print("Exception: ", Exception)
+            return pos_tagged_word[0]
     def preprocess(self, file):
         with open(file, 'r', encoding='utf-8') as input_file:
             lines = input_file.readlines()
             clean_lines = [self.clean_line(line) for line in lines]
             tokenized_lines = [nltk.word_tokenize(line) for line in clean_lines]
-
-            tokens_with_pos_tagging = [nltk.pos_tag(line) for line in tokenized_lines]
-            lemmatized_pos_tagged_tokens = [[(self.lemmatize_word(word), pos_tag) for (word, pos_tag) in line] for line in tokens_with_pos_tagging]
+            token_list = [word for line in tokenized_lines for word in line]
+            tokens_with_pos_tagging = nltk.pos_tag(token_list)
+            print("first 50 tokens with pos tagging: ", tokens_with_pos_tagging[:50])
+            lemmatized_pos_tagged_tokens = [self.lemmatize_pos_tagged_word(token) for token in tokens_with_pos_tagging]
+            print("lemmatized pos tagged tokens length: ", len(lemmatized_pos_tagged_tokens))
+            print("first 50 lemmatized pos tagged tokens: ", lemmatized_pos_tagged_tokens[:50])
             # filter stopwords
-            return  [[(word, pos_tag) for (word, pos_tag) in line if word not in set(stopwords.words('english'))] for line in lemmatized_pos_tagged_tokens]
+            lemmatized_pos_tagged_tokens_without_stop_words = [[(word, pos_tag) for (word, pos_tag) in line if word not in set(stopwords.words('english'))] for line in lemmatized_pos_tagged_tokens]
+            print("lemmatized pos tagged tokens without stop words length: ", len(lemmatized_pos_tagged_tokens_without_stop_words))
+            return lemmatized_pos_tagged_tokens_without_stop_words
     def lemmatize_word(self, word):
         lemmatizer = nltk.stem.WordNetLemmatizer()
         return lemmatizer.lemmatize(word)
@@ -55,13 +71,13 @@ class ContextMining:
                         context.append(tokens[j])
         return context 
         
-    def get_context_matrix(self, tokenized_lines, vocabulary, window_size):
-        context_matrix = np.zeros((len(vocabulary), len(vocabulary)))
-        for i in range(len(vocabulary)):
-            for j in range(len(vocabulary)):
-                if i != j:
-                    context_matrix[i][j] = self.get_context(tokenized_lines, vocabulary[i], window_size).count(vocabulary[j])
-        return context_matrix
+#     def get_context_matrix(self, tokenized_lines, vocabulary, window_size):
+#         context_matrix = np.zeros((len(vocabulary), len(vocabulary)))
+#         for i in range(len(vocabulary)):
+#             for j in range(len(vocabulary)):
+#                 if i != j:
+#                     context_matrix[i][j] = self.get_context(tokenized_lines, vocabulary[i], window_size).count(vocabulary[j])
+#         return context_matrix
     
 class Checkpoint:
     def __init__(self): 
