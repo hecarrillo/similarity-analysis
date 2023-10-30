@@ -36,18 +36,24 @@ class TextPreprocessing:
         lemmatizer = nltk.stem.WordNetLemmatizer()
         return lemmatizer.lemmatize(word)
 
-    def get_vocabulary_from_tokenized_lines(self, tokenized_lines):
-        vocabulary = set()
-        for line in tokenized_lines:
-            for word in line.split():
-                vocabulary.add(word)
-        return vocabulary
+    def get_vocabulary_from_tokens(self, token_list):
+        set_of_tokens = set()
+        for line in token_list:
+            for token in line:
+                set_of_tokens.add(token[0])
+        return [token for token in token_list if token not in set_of_tokens]
 
 class ContextMining:
     def __init__(self):
         pass
     def get_context(self, tokens, word, window_size):
-        
+        context = []
+        for i in range(len(tokens)):
+            if tokens[i] == word:
+                for j in range(i-window_size, i+window_size+1):
+                    if j >= 0 and j < len(tokens) and j != i:
+                        context.append(tokens[j])
+        return context 
         
     def get_context_matrix(self, tokenized_lines, vocabulary, window_size):
         context_matrix = np.zeros((len(vocabulary), len(vocabulary)))
@@ -57,11 +63,43 @@ class ContextMining:
                     context_matrix[i][j] = self.get_context(tokenized_lines, vocabulary[i], window_size).count(vocabulary[j])
         return context_matrix
     
+class Checkpoint:
+    def __init__(self): 
+        pass
+    def save(self, file_name, data, create_directory=False):
+        if create_directory:
+            import os
+            directory = os.path.dirname(file_name)
+            if not os.path.exists(directory):
+                os.makedirs(directory)
+        with open(file_name, 'w') as file:
+            for line in data:
+                for token in line:
+                    file.write(f'{token[0]} ')
+                file.write('\n')
+    
+    def load(self, file_name):
+        try:
+            with open(file_name, 'r') as file:
+                lines = file.readlines()
+                return [list(line.split()) for line in lines]
+        except Exception:
+            return None
 
 ORIGINAL_FILE_NAME = './inputs/original.txt'
 
+
 TextPreprocessing = TextPreprocessing()
-tokens = TextPreprocessing.preprocess(ORIGINAL_FILE_NAME)
+CheckpointManager = Checkpoint()
+
+if CheckpointManager.load('./checkpoints/tokens.txt') is None:
+    tokens = TextPreprocessing.preprocess(ORIGINAL_FILE_NAME)
+    CheckpointManager.save('./checkpoints/tokens.txt', tokens, create_directory=True)
+else:
+    tokens = CheckpointManager.load('./checkpoints/tokens.txt')
+
+print(tokens[:50])
+vocabulary = TextPreprocessing.get_vocabulary_from_tokens(tokens)
 ContextMining = ContextMining()
-word_context
-vocabulary = TextPreprocessing.get_vocabulary_from_tokenized_lines(tokens)
+context_matrix = ContextMining.get_context_matrix(tokens, vocabulary, 8)
+
